@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jira Ticket Generator</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      color: #333;
+    }
+    .input-group {
+      margin-bottom: 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .input-group label {
+      font-weight: 600;
+    }
+    .input-group input {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #dfe1e6;
+      border-radius: 4px;
+      max-width: 300px;
+    }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 25px;
+      background-color: #f4f5f7;
+      padding: 15px;
+      border-radius: 6px;
+    }
+    .settings-grid .input-group {
+      margin-bottom: 0;
+    }
+    .task-list {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .task-item label {
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .task-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .task-summary {
+      font-weight: 600;
+    }
+    .task-desc {
+      font-size: 0.9em;
+      color: #666;
+    }
+    button {
+      padding: 10px 16px;
+      background-color: #0052CC; /* Atlassian Blue */
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #0047B3;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>FPGA Verification Task Generator</h2>
+  
+  <div class="settings-grid">
+    <div class="input-group">
+      <label for="moduleName">FPGA Module Name:</label>
+      <input type="text" id="moduleName" placeholder="e.g. axi_interconnect">
+    </div>
+    <div class="input-group">
+      <label for="issueType">Type (Story or Bug):</label>
+      <input type="text" id="issueType" value="Story">
+    </div>
+    <div class="input-group">
+      <label for="priority">Priority:</label>
+      <input type="text" id="priority" value="Medium">
+    </div>
+    <div class="input-group">
+      <label for="component">Component:</label>
+      <input type="text" id="component" value="FW">
+    </div>
+    <div class="input-group">
+      <label for="epicLink">Epic Link:</label>
+      <input type="text" id="epicLink" placeholder="e.g. PROJ-123">
+    </div>
+    <div class="input-group">
+      <label for="sprint">Sprint:</label>
+      <input type="text" id="sprint" placeholder="e.g. Sprint 1">
+    </div>
+    <div class="input-group">
+      <label for="chargeNumber">Charge Number:</label>
+      <input type="text" id="chargeNumber" placeholder="e.g. 12345-67">
+    </div>
+    <div class="input-group">
+      <label for="storyPoints">Story Points (Global Override):</label>
+      <input type="text" id="storyPoints" placeholder="Overrides ticket default">
+    </div>
+    <div class="input-group">
+      <label for="acceptanceCriteria">Acceptance Criteria (Global Override):</label>
+      <input type="text" id="acceptanceCriteria" placeholder="Overrides ticket default">
+    </div>
+  </div>
+
+  <div class="task-list" id="taskList">
+    <!-- Checkboxes are injected here by JavaScript -->
+  </div>
+  
+  <button onclick="generateCSV()">Download Jira CSV</button>
+
+  <script>
+    // 1. Define your Jira templates here
+    // Use {{MODULE}} as a placeholder for the block name
+    const taskTemplates = [
+      { id: 't1', summary: 'First Pass Verification Plan for {{MODULE}}', description: 'Draft the first pass verification plan for {{MODULE}}.', issueType: 'Story', priority: 'High', storyPoints: '3', acceptanceCriteria: 'Plan is drafted and reviewed.' },
+      { id: 't2', summary: 'Create Test Harness for {{MODULE}}', description: 'Create the test harness for {{MODULE}} verification.', issueType: 'Story', priority: 'High', storyPoints: '5', acceptanceCriteria: 'Harness compiles successfully.' },
+      { id: 't3', summary: 'Create UVM Environment for {{MODULE}}', description: 'Create the UVM environment for {{MODULE}}.', issueType: 'Story', priority: 'Highest', storyPoints: '5', acceptanceCriteria: 'UVM Env is integrated.' },
+      { id: 't4', summary: 'Create UVM Base Test for {{MODULE}}', description: 'Create the UVM base test for {{MODULE}}.', issueType: 'Story', priority: 'High', storyPoints: '3', acceptanceCriteria: 'Base test passes.' },
+      { id: 't5', summary: 'Create UVM Base Sequences for {{MODULE}}', description: 'Create the UVM base sequences for {{MODULE}}.', issueType: 'Story', priority: 'High', storyPoints: '3', acceptanceCriteria: 'Base sequences run without errors.' },
+      { id: 't6', summary: 'Create UVM tests for {{MODULE}}', description: 'Create specific UVM tests for {{MODULE}}.', issueType: 'Story', priority: 'Medium', storyPoints: '5', acceptanceCriteria: 'All specified tests implemented.' },
+      { id: 't7', summary: 'Create UVM Sequences for {{MODULE}}', description: 'Create specific UVM sequences for {{MODULE}}.', issueType: 'Story', priority: 'Medium', storyPoints: '5', acceptanceCriteria: 'All specified sequences implemented.' },
+      { id: 't8', summary: 'Create UVM Agents for {{MODULE}}', description: 'Create UVM agents required for {{MODULE}} verification.', issueType: 'Story', priority: 'High', storyPoints: '8', acceptanceCriteria: 'Agents generate correct stimulus.' },
+      { id: 't9', summary: 'Create UVM Scoreboards for {{MODULE}}', description: 'Create UVM scoreboards for {{MODULE}}.', issueType: 'Story', priority: 'High', storyPoints: '8', acceptanceCriteria: 'Scoreboard correctly predicts outcomes.' },
+      { id: 't10', summary: 'Create Testplan for {{MODULE}}', description: 'Create the detailed testplan for {{MODULE}}.', issueType: 'Story', priority: 'High', storyPoints: '3', acceptanceCriteria: 'Testplan mapped to features.' },
+      { id: 't11', summary: 'Collect Code Coverage for {{MODULE}}', description: 'Collect code coverage metrics for {{MODULE}}.', issueType: 'Story', priority: 'Medium', storyPoints: '2', acceptanceCriteria: 'Code coverage reports generated.' },
+      { id: 't12', summary: 'Collect Functional Coverage for {{MODULE}}', description: 'Collect functional coverage metrics for {{MODULE}}.', issueType: 'Story', priority: 'Medium', storyPoints: '3', acceptanceCriteria: 'Functional coverage reports generated.' },
+      { id: 't13', summary: 'Close Code Coverage for {{MODULE}}', description: 'Analyze and close code coverage for {{MODULE}}.', issueType: 'Story', priority: 'High', storyPoints: '5', acceptanceCriteria: 'Code coverage goals met.' },
+      { id: 't14', summary: 'Close Functional Coverage for {{MODULE}}', description: 'Analyze and close functional coverage for {{MODULE}}.', issueType: 'Story', priority: 'High', storyPoints: '5', acceptanceCriteria: 'Functional coverage goals met.' },
+      { id: 't15', summary: 'Merge Verification Branch for {{MODULE}}', description: 'Merge the verification branch for {{MODULE}} into main.', issueType: 'Story', priority: 'Medium', storyPoints: '1', acceptanceCriteria: 'PR approved and merged.' }
+    ];
+
+    // 2. Render the tasks to the UI
+    const taskListDiv = document.getElementById('taskList');
+    taskTemplates.forEach(task => {
+      const div = document.createElement('div');
+      div.className = 'task-item';
+      
+      // Display generic "[Module]" text in the UI to keep it clean
+      const displaySummary = task.summary.replace(/\{\{MODULE\}\}/g, '[Module]');
+      const displayDesc = task.description.replace(/\{\{MODULE\}\}/g, '[Module]');
+
+      div.innerHTML = `
+        <label>
+          <input type="checkbox" value="${task.id}" id="${task.id}">
+          <div class="task-text">
+            <span class="task-summary">${displaySummary}</span>
+            <span class="task-desc">${displayDesc}</span>
+          </div>
+        </label>
+      `;
+      taskListDiv.appendChild(div);
+    });
+
+    // 3. Handle the CSV generation and download
+    function generateCSV() {
+      const moduleInput = document.getElementById('moduleName').value.trim();
+      const typeInput = document.getElementById('issueType').value.trim();
+      const priorityInput = document.getElementById('priority').value.trim();
+      const componentInput = document.getElementById('component').value.trim();
+      const epicLinkInput = document.getElementById('epicLink').value.trim();
+      const sprintInput = document.getElementById('sprint').value.trim();
+      const chargeNumberInput = document.getElementById('chargeNumber').value.trim();
+      const storyPointsInput = document.getElementById('storyPoints').value.trim();
+      const acInput = document.getElementById('acceptanceCriteria').value.trim();
+      
+      if (!moduleInput) {
+        alert('Please enter an FPGA Module Name.');
+        return;
+      }
+
+      // Get all checked boxes
+      const selectedIds = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+      const selectedTasks = taskTemplates.filter(task => selectedIds.includes(task.id));
+
+      if (selectedTasks.length === 0) {
+        alert('Please select at least one task to generate a CSV.');
+        return;
+      }
+
+      // Define standard Jira headers
+      const headers = [
+        'Summary', 'Description', 'Issue Type', 'Priority', 'Component',
+        'Epic Link', 'Story Points', 'Acceptance Criteria', 'Sprint', 'Charge Number'
+      ];
+      let csvContent = headers.join(',') + '\n';
+      
+      selectedTasks.forEach(task => {
+        // Replace placeholders with actual module name
+        const resolvedSummary = task.summary.replace(/\{\{MODULE\}\}/g, moduleInput);
+        const resolvedDesc = task.description.replace(/\{\{MODULE\}\}/g, moduleInput);
+
+        // Use global inputs if provided, otherwise fallback to template data
+        const finalType = typeInput || task.issueType || 'Story';
+        const finalPriority = priorityInput || task.priority || 'Medium';
+        const finalSP = storyPointsInput || task.storyPoints || '';
+        const finalAC = acInput || task.acceptanceCriteria || '';
+
+        // Safely escape strings for CSV format (wrap in quotes, replace inner quotes with double quotes)
+        const escapeCSV = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
+        
+        const row = [
+          escapeCSV(resolvedSummary),
+          escapeCSV(resolvedDesc),
+          escapeCSV(finalType),
+          escapeCSV(finalPriority),
+          escapeCSV(componentInput),
+          escapeCSV(epicLinkInput),
+          escapeCSV(finalSP),
+          escapeCSV(finalAC),
+          escapeCSV(sprintInput),
+          escapeCSV(chargeNumberInput)
+        ];
+        
+        csvContent += row.join(',') + '\n';
+      });
+
+      // Create a Blob and trigger the download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${moduleInput}_verification_tasks.csv`);
+      
+      // Invisible appending to satisfy Firefox requirements
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
