@@ -211,7 +211,7 @@
     </div>
     <div class="input-group">
       <label for="assignee">Assignee:</label>
-      <input type="text" id="assignee" placeholder="e.g. jdoe">
+      <input type="text" id="assignee" placeholder="e.g. tristen.hallock (JIRA username)">
     </div>
     <div class="input-group">
       <label for="programActivity">Program Activity:</label>
@@ -222,8 +222,8 @@
       <input type="text" id="labels" placeholder="e.g. fpga, verification">
     </div>
     <div class="input-group">
-      <label for="status">Status:</label>
-      <input type="text" id="status" value="To Do">
+      <label for="fixVersions">Fix Version/s:</label>
+      <input type="text" id="fixVersions" placeholder="e.g. 1.0.0">
     </div>
   </div>
 
@@ -352,7 +352,7 @@
       const assigneeInput = document.getElementById('assignee').value.trim();
       const programActivityInput = document.getElementById('programActivity').value.trim();
       const labelsInput = document.getElementById('labels').value.trim();
-      const statusInput = document.getElementById('status').value.trim() || 'To Do';
+      const fixVersionsInput = document.getElementById('fixVersions').value.trim();
       
       if (!moduleInput) {
         alert('Please enter an FPGA Module Name.');
@@ -372,7 +372,7 @@
       const headers = [
         'Summary', 'Description', 'Issue Type', 'Priority', 'Component',
         'Epic Link', 'Story Points', 'Acceptance Criteria', 'Sprint', 'Charge Number',
-        'Assignee', 'Program Activity', 'Labels', 'Status'
+        'Assignee', 'Program Activity', 'Labels', 'Fix Version/s'
       ];
       let csvContent = headers.join(',') + '\n';
       
@@ -407,7 +407,7 @@
           escapeCSV(assigneeInput),
           escapeCSV(programActivityInput),
           escapeCSV(labelsInput),
-          escapeCSV(statusInput)
+          escapeCSV(fixVersionsInput)
         ];
         
         csvContent += row.join(',') + '\n';
